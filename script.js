@@ -690,4 +690,47 @@ newRow.addEventListener("mouseout", function () {
             });
         }
     }
+
+    function gerarCodigoRegistro() {
+    return Math.floor(1000 + Math.random() * 9000).toString(); // Código de 4 dígitos
+}
+document.addEventListener("DOMContentLoaded", function () {
+    const iniciarTurnoButton = document.getElementById("iniciarTurnoButton");
+    const abrirSolicitacaoButton = document.getElementById("abrirSolicitacaoButton");
+    const reservarButton = document.getElementById("reservarButton");
+    const codigoRegistroContainer = document.getElementById("codigoRegistro");
+    const registroCodigo = document.getElementById("registroCodigo");
+
+    iniciarTurnoButton.addEventListener("click", function () {
+        // Gera o código de registro
+        const codigo = gerarCodigoRegistro();
+
+        // Armazena o código no localStorage
+        localStorage.setItem("codigoRegistro", codigo);
+
+        // Exibe o código de registro na tela
+        registroCodigo.textContent = codigo;
+        codigoRegistroContainer.style.display = "block";
+
+        // Exibe os botões de solicitação e reserva
+        abrirSolicitacaoButton.style.display = "inline-block";
+        reservarButton.style.display = "inline-block";
+
+        // Oculta o botão de iniciar turno
+        iniciarTurnoButton.style.display = "none";
+
+        alert(`Turno iniciado! Código de registro: ${codigo}`);
+    });
+
+    // Verifica se já existe um código de registro
+    const codigoExistente = localStorage.getItem("codigoRegistro");
+    if (codigoExistente) {
+        registroCodigo.textContent = codigoExistente;
+        codigoRegistroContainer.style.display = "block";
+        abrirSolicitacaoButton.style.display = "inline-block";
+        reservarButton.style.display = "inline-block";
+        iniciarTurnoButton.style.display = "none";
+    }
+});
+
 });
