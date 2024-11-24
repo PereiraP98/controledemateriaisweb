@@ -25,7 +25,6 @@
         </div>
     </header>
     <main class="main-container">
-        <!-- Botão de Iniciar Turno -->
         <button id="iniciarTurnoButton" style="margin: 10px; padding: 10px 15px;">Iniciar Turno</button>
         
         <div class="column">
@@ -57,82 +56,49 @@
                     </div>
                 </form>
             </section>
-
-            <section class="materiais-reservados">
-                <h2>Materiais Reservados</h2>
-                <table id="reservadosTable">
-                    <thead>
-                        <tr>
-                            <th>LOCAL</th>
-                            <th>ITEM</th>
-                            <th>DESTINO</th>
-                            <th>SOLICITAR</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Registros de materiais reservados -->
-                    </tbody>
-                </table>
-            </section>
-        </div>
-
-        <div class="column">
-            <section class="graficos-container">
-                <h2>Gráficos</h2>
-                <div id="graficoPlaceholder">
-                    <p>Gráficos serão exibidos aqui.</p>
-                </div>
-            </section>
-        </div>
-
-        <div class="column">
-            <section class="materiais-solicitados">
-                <h2>Materiais Solicitados</h2>
-                <table id="solicitadosTable">
-                    <thead>
-                        <tr>
-                            <th>LOCAL</th>
-                            <th>ITEM</th>
-                            <th>DESTINO</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Registros de materiais solicitados -->
-                    </tbody>
-                </table>
-                <button type="button" id="detalhesButton" onclick="location.href='detalhes.html'">Detalhes</button>
-            </section>
         </div>
     </main>
-
-    <div id="janelaSolicitacao" class="janela-flutuante">
-        <h2>Solicitação de Material</h2>
-        <form id="janelaForm">
-            <label for="quantidade">Quantidade do Material:</label>
-            <input type="number" id="quantidade" name="quantidade" value="1" min="1" required>
-
-            <label for="horario">Horário de Solicitação:</label>
-            <input type="time" id="horario" name="horario">
-
-            <div class="button-container">
-                <button type="button" id="cancelarSolicitacaoButton">Cancelar</button>
-                <button type="submit" id="confirmarSolicitacaoButton">Solicitar</button>
-            </div>
-        </form>
-    </div>
 
     <footer>
         © 2024 COLLAB - Todos os direitos reservados.
     </footer>
 
-    <script src="script.js"></script>
     <script>
-        // Função para gerar código de registro
+        // Função para gerar um código de registro
         function gerarCodigoRegistro() {
-            return Math.floor(1000 + Math.random() * 9000).toString(); // Gera um código de 4 dígitos
+            return Math.floor(1000 + Math.random() * 9000).toString();
         }
 
-        // Lógica para o botão Iniciar Turno
+        // Função para verificar se o código de registro é válido para o dia
+        function verificarCodigoRegistro() {
+            const codigoData = localStorage.getItem("registroData");
+            const codigoAtual = localStorage.getItem("codigoRegistro");
+
+            const hoje = new Date().toISOString().split("T")[0]; // Data no formato YYYY-MM-DD
+
+            // Se a data for diferente de hoje, redefine o código
+            if (codigoData !== hoje) {
+                localStorage.removeItem("codigoRegistro");
+                localStorage.removeItem("registroData");
+                return null;
+            }
+
+            return codigoAtual;
+        }
+
+        // Função para inicializar o turno
+        function iniciarTurno() {
+            const codigo = gerarCodigoRegistro();
+            const hoje = new Date().toISOString().split("T")[0]; // Data no formato YYYY-MM-DD
+
+            // Salva o código de registro e a data
+            localStorage.setItem("codigoRegistro", codigo);
+            localStorage.setItem("registroData", hoje);
+
+            return codigo;
+        }
+
+        // Controle da página ao carregar
         document.addEventListener("DOMContentLoaded", function () {
             const iniciarTurnoButton = document.getElementById("iniciarTurnoButton");
             const abrirSolicitacaoButton = document.getElementById("abrirSolicitacaoButton");
@@ -140,24 +106,25 @@
             const codigoRegistroContainer = document.getElementById("codigoRegistro");
             const registroCodigo = document.getElementById("registroCodigo");
 
-            iniciarTurnoButton.addEventListener("click", function () {
-                const codigo = gerarCodigoRegistro();
-                localStorage.setItem("codigoRegistro", codigo);
-                registroCodigo.textContent = codigo;
-                codigoRegistroContainer.style.display = "block";
-                abrirSolicitacaoButton.style.display = "inline-block";
-                reservarButton.style.display = "inline-block";
-                iniciarTurnoButton.style.display = "none";
-                alert(`Turno iniciado! Código de registro: ${codigo}`);
-            });
+            // Verifica o código existente
+            const codigoExistente = verificarCodigoRegistro();
 
-            const codigoExistente = localStorage.getItem("codigoRegistro");
             if (codigoExistente) {
                 registroCodigo.textContent = codigoExistente;
                 codigoRegistroContainer.style.display = "block";
                 abrirSolicitacaoButton.style.display = "inline-block";
                 reservarButton.style.display = "inline-block";
                 iniciarTurnoButton.style.display = "none";
+            } else {
+                iniciarTurnoButton.addEventListener("click", function () {
+                    const novoCodigo = iniciarTurno();
+                    registroCodigo.textContent = novoCodigo;
+                    codigoRegistroContainer.style.display = "block";
+                    abrirSolicitacaoButton.style.display = "inline-block";
+                    reservarButton.style.display = "inline-block";
+                    iniciarTurnoButton.style.display = "none";
+                    alert(`Turno iniciado! Código de registro: ${novoCodigo}`);
+                });
             }
         });
     </script>
