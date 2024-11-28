@@ -3,6 +3,12 @@
 // Map para armazenar os IDs dos intervals para cada detalhe
 const intervalMap = new Map();
 
+// Inicializar o EmailJS com a Public Key
+(function() {
+    emailjs.init("-Dld80qWNEvyNQQYz"); // Substitua pela sua Public Key correta
+    console.log("EmailJS inicializado com sucesso!");
+})();
+
 // Lógica de login
 var loginForm = document.getElementById("loginForm");
 if (loginForm) {
@@ -78,15 +84,27 @@ if (backToPanelButton) {
 var abrirSolicitacaoButton = document.getElementById("abrirSolicitacaoButton");
 if (abrirSolicitacaoButton) {
     abrirSolicitacaoButton.addEventListener("click", function () {
-        var horarioAtual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        var horarioInput = document.getElementById("horario");
-        if (horarioInput) {
-            horarioInput.value = horarioAtual; // Preenche o horário atual
+        var localSelect = document.getElementById("local");
+        var itemInput = document.getElementById("item");
+        var destinoSelect = document.getElementById("destino");
+
+        var local = localSelect ? localSelect.value.trim() : "";
+        var item = itemInput ? itemInput.value.trim() : "";
+        var destino = destinoSelect ? destinoSelect.value.trim() : "";
+
+        // Validação dos campos
+        if (!local || !item || !destino) {
+            alert("Por favor, preencha todos os campos.");
+            return;
         }
-        var janelaSolicitacao = document.getElementById("janelaSolicitacao");
-        if (janelaSolicitacao) {
-            janelaSolicitacao.style.display = "block";
+
+        if (!/^\d{5}$/.test(item)) {
+            alert("O código do item deve ter exatamente 5 dígitos.");
+            return;
         }
+
+        // Abrir a janela de solicitação com os dados preenchidos
+        abrirJanelaSolicitacao({ local: local, item: item, destino: destino });
     });
 }
 
@@ -98,6 +116,11 @@ if (cancelarSolicitacaoButton) {
         if (janelaSolicitacao) {
             janelaSolicitacao.style.display = "none";
         }
+        // Limpa os campos ocultos
+        var fromReservadosInput = document.getElementById("fromReservados");
+        var itemIndexInput = document.getElementById("itemIndex");
+        if (fromReservadosInput) fromReservadosInput.value = "false";
+        if (itemIndexInput) itemIndexInput.value = "-1";
     });
 }
 
@@ -106,18 +129,23 @@ var janelaForm = document.getElementById("janelaForm");
 if (janelaForm) {
     janelaForm.addEventListener("submit", function (event) {
         event.preventDefault();
-
+        var fromReservadosInput = document.getElementById("fromReservados");
+        var itemIndexInput = document.getElementById("itemIndex");
         var quantidadeInput = document.getElementById("quantidade");
         var horarioInput = document.getElementById("horario");
-        var localSelect = document.getElementById("local");
+        var localInput = document.getElementById("local");
         var itemInput = document.getElementById("item");
         var destinoSelect = document.getElementById("destino");
 
         var quantidade = quantidadeInput ? quantidadeInput.value.trim() : "";
         var horario = horarioInput ? horarioInput.value.trim() : "";
-        var local = localSelect ? localSelect.value.trim() : "";
+        var local = localInput ? localInput.value.trim() : "";
         var item = itemInput ? itemInput.value.trim() : "";
         var destino = destinoSelect ? destinoSelect.value.trim() : "";
+
+        // Obter os valores dos campos ocultos
+        var fromReservados = fromReservadosInput ? fromReservadosInput.value : "false";
+        var itemIndex = itemIndexInput ? parseInt(itemIndexInput.value) : -1;
 
         // Validação dos campos
         if (!quantidade || !horario || !local || !item || !destino) {
@@ -136,27 +164,25 @@ if (janelaForm) {
             return;
         }
 
+        // Lógica para remover o item reservado após a confirmação
+        if (fromReservados === "true" && itemIndex >= 0) {
+            var reservados = JSON.parse(localStorage.getItem("reservados")) || [];
+            reservados.splice(itemIndex, 1);
+            localStorage.setItem("reservados", JSON.stringify(reservados));
+            // Atualiza a tabela de reservados
+            atualizarTabelaReservados();
+        }
+
+        // Limpa os campos ocultos após a submissão
+        if (fromReservadosInput) fromReservadosInput.value = "false";
+        if (itemIndexInput) itemIndexInput.value = "-1";
+
+        // Registro da solicitação nos dados locais
         var dataAtual = new Date().toLocaleDateString("pt-BR", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric"
         });
-
-        var solicitadosTable = document.getElementById("solicitadosTable");
-        var solicitadosTableBody = solicitadosTable ? solicitadosTable.querySelector("tbody") : null;
-        var newRow = document.createElement("tr");
-        newRow.innerHTML = `
-            <td>${local}</td>
-            <td>${item}</td>
-            <td>${destino}</td>
-        `;
-        if (solicitadosTableBody) {
-            solicitadosTableBody.appendChild(newRow);
-        }
-
-        var solicitados = JSON.parse(localStorage.getItem("solicitados")) || [];
-        solicitados.push({ local: local, item: item, destino: destino });
-        localStorage.setItem("solicitados", JSON.stringify(solicitados));
 
         // Calcular o timestamp baseado no horário inserido pelo usuário
         var dataAtualObj = new Date();
@@ -177,17 +203,11 @@ if (janelaForm) {
             0  // milissegundos
         );
 
-        // NÃO adiciona um dia se o horário for no passado ou igual ao atual
-        // Isso garante que o horário seja tratado como do mesmo dia
-        // Se precisar tratar como próximo dia apenas para horários futuros, mantenha a lógica abaixo
-        // Porém, pelo seu feedback, removemos a adição de um dia para horários passados
-
-        // Obter o timestamp (em milissegundos)
         var timestamp = timestampDate.getTime();
-
         var agora = Date.now();
         var isFuture = timestamp > agora;
 
+        // Adiciona aos detalhes
         var detalhes = JSON.parse(localStorage.getItem("detalhes")) || [];
         detalhes.push({
             local: local,
@@ -196,10 +216,15 @@ if (janelaForm) {
             destino: destino,
             dataAtual: dataAtual,
             horario: horario,
-            timestamp: timestamp, // Usamos o timestamp calculado
-            isFuture: isFuture    // Indica se o horário é no futuro
+            timestamp: timestamp,
+            isFuture: isFuture
         });
         localStorage.setItem("detalhes", JSON.stringify(detalhes));
+
+        // Adiciona aos solicitados
+        var solicitados = JSON.parse(localStorage.getItem("solicitados")) || [];
+        solicitados.push({ local: local, item: item, destino: destino });
+        localStorage.setItem("solicitados", JSON.stringify(solicitados));
 
         var janelaSolicitacao = document.getElementById("janelaSolicitacao");
         if (janelaSolicitacao) {
@@ -208,6 +233,9 @@ if (janelaForm) {
 
         alert("Material solicitado com sucesso!");
 
+        // Atualiza a tabela de solicitados na página index.html
+        atualizarTabelaSolicitados();
+
         // Atualiza a tabela de detalhes se estiver na página detalhes.html
         if (window.location.pathname.includes("detalhes.html")) {
             atualizarTabelaDetalhes();
@@ -215,8 +243,40 @@ if (janelaForm) {
     });
 }
 
+// Função para abrir a janela de solicitação com dados preenchidos
+function abrirJanelaSolicitacao(dados, index) {
+    var horarioAtual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    var localInput = document.getElementById("local");
+    var itemInput = document.getElementById("item");
+    var destinoSelect = document.getElementById("destino");
+    var horarioInput = document.getElementById("horario");
+    var fromReservadosInput = document.getElementById("fromReservados");
+    var itemIndexInput = document.getElementById("itemIndex");
+
+    if (localInput) localInput.value = dados.local || "";
+    if (itemInput) itemInput.value = dados.item || "";
+    if (destinoSelect) destinoSelect.value = dados.destino || "";
+    if (horarioInput) horarioInput.value = horarioAtual;
+
+    // Define os campos ocultos somente se o index for válido
+    if (typeof index !== 'undefined') {
+        if (fromReservadosInput) fromReservadosInput.value = "true";
+        if (itemIndexInput) itemIndexInput.value = index;
+    } else {
+        if (fromReservadosInput) fromReservadosInput.value = "false";
+        if (itemIndexInput) itemIndexInput.value = "-1";
+    }
+
+    var janelaSolicitacao = document.getElementById("janelaSolicitacao");
+    if (janelaSolicitacao) {
+        janelaSolicitacao.style.display = "block";
+    }
+}
+
 // Reservar um item (Página Index)
 var reservarButton = document.getElementById("reservarButton");
+
 if (reservarButton) {
     reservarButton.addEventListener("click", function () {
         var localSelect = document.getElementById("local");
@@ -238,34 +298,60 @@ if (reservarButton) {
             return;
         }
 
-        var reservadosTable = document.getElementById("reservadosTable");
-        var reservadosTableBody = reservadosTable ? reservadosTable.querySelector("tbody") : null;
-        var newRow = document.createElement("tr");
-        newRow.innerHTML = `
-            <td>${local}</td>
-            <td>${item}</td>
-            <td>${destino}</td>
-        `;
-        if (reservadosTableBody) {
-            reservadosTableBody.appendChild(newRow);
-        }
+        // Adicionar ao localStorage
+        var reservados = JSON.parse(localStorage.getItem("reservados")) || [];
+        reservados.push({ local, item, destino });
+        localStorage.setItem("reservados", JSON.stringify(reservados));
 
-        // Opcional: Adicionar a reserva ao localStorage se necessário
+        // Atualiza a tabela de reservados
+        atualizarTabelaReservados();
 
         alert("Material reservado com sucesso!");
     });
 }
 
-// Carregar os itens solicitados armazenados no localStorage na página index
-document.addEventListener("DOMContentLoaded", function () {
+// Função para atualizar a tabela de materiais reservados
+function atualizarTabelaReservados() {
+    var reservados = JSON.parse(localStorage.getItem("reservados")) || [];
+    var reservadosTableBody = document.querySelector("#reservadosTable tbody");
+
+    if (reservadosTableBody) {
+        reservadosTableBody.innerHTML = ""; // Limpa a tabela antes de recarregar
+
+        reservados.forEach(function (item, index) {
+            var newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td>${item.local}</td>
+                <td>${item.item}</td>
+                <td>${item.destino}</td>
+                <td><button class="solicitar-button" data-index="${index}">Solicitar</button></td>
+            `;
+
+            reservadosTableBody.appendChild(newRow);
+
+            // Adiciona evento ao botão de "Solicitar"
+            var solicitarButton = newRow.querySelector(".solicitar-button");
+            if (solicitarButton) {
+                solicitarButton.addEventListener("click", function () {
+                    var index = parseInt(this.getAttribute('data-index'));
+                    abrirJanelaSolicitacao(item, index);
+                    // Não removemos o item aqui; ele será removido após a confirmação
+                });
+            }
+        });
+    }
+}
+
+// Função para atualizar a tabela de materiais solicitados na página index.html
+function atualizarTabelaSolicitados() {
     var solicitados = JSON.parse(localStorage.getItem("solicitados")) || [];
     var solicitadosTable = document.getElementById("solicitadosTable");
     var solicitadosTableBody = solicitadosTable ? solicitadosTable.querySelector("tbody") : null;
 
     if (solicitadosTableBody) {
-        // Limpa a tabela antes de recarregar
-        solicitadosTableBody.innerHTML = "";
-        solicitados.forEach(function(item) {
+        solicitadosTableBody.innerHTML = ""; // Limpa a tabela antes de recarregar
+
+        solicitados.forEach(function (item) {
             var newRow = document.createElement("tr");
             newRow.innerHTML = `
                 <td>${item.local}</td>
@@ -275,6 +361,12 @@ document.addEventListener("DOMContentLoaded", function () {
             solicitadosTableBody.appendChild(newRow);
         });
     }
+}
+
+// Carrega os dados ao carregar a página
+document.addEventListener("DOMContentLoaded", function () {
+    atualizarTabelaReservados();
+    atualizarTabelaSolicitados();
 
     // Código específico para detalhes.html
     if (window.location.pathname.includes("detalhes.html")) {
@@ -286,26 +378,30 @@ document.addEventListener("DOMContentLoaded", function () {
         // Função para formatar o tempo decorrido ou restante
         function formatTime(milliseconds, showSeconds = false) {
             if (milliseconds < 0) milliseconds = 0; // Evita valores negativos
-        
+
             var totalSeconds = Math.floor(milliseconds / 1000);
             var hours = Math.floor(totalSeconds / 3600);
             var minutes = Math.floor((totalSeconds % 3600) / 60);
             var seconds = totalSeconds % 60;
-        
-            var timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+            var timeString = (
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0')
+            );
+
             if (showSeconds) {
-                timeString += `:${String(seconds).padStart(2, '0')}`;
+                timeString += ':' + String(seconds).padStart(2, '0');
             }
+
             return timeString;
         }
-        
 
         // Função para atualizar a tabela de detalhes
         function atualizarTabelaDetalhes() {
             if (detalhesTable) {
                 detalhesTable.innerHTML = ""; // Limpa a tabela antes de recarregar
 
-                detalhes.forEach(function(detalhe, index) {
+                detalhes.forEach(function (detalhe, index) {
                     var newRow = document.createElement("tr");
 
                     // Determina se o horário é no futuro ou no passado
@@ -339,76 +435,105 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Manipulação do tempo e eventos de hover
                     var tempoCell = newRow.querySelector(".tempo-cell");
                     if (tempoCell) {
-    // Função para atualizar o tempo na célula
-    function updateTimeCell(showSeconds = false) {
-        var now = Date.now();
-        if (detalhe.isFuture) {
-            var remaining = detalhe.timestamp - now;
-            if (remaining <= 0) {
-                // Tempo alcançado, mudar para tempo decorrido
-                detalhe.isFuture = false;
-                detalhe.timestamp = now;
-                clearInterval(intervalMap.get(index));
-                intervalMap.delete(index);
-                // Inicia a contagem do tempo decorrido a cada segundo
-                var elapsedInterval = setInterval(() => {
-                    var elapsed = Date.now() - detalhe.timestamp;
-                    tempoCell.textContent = formatTime(elapsed, showSeconds);
-                }, 1000);
-                intervalMap.set(index, elapsedInterval);
-                tempoCell.textContent = formatTime(Date.now() - detalhe.timestamp, showSeconds);
-            } else {
-                // Atualiza a contagem regressiva
-                tempoCell.textContent = formatTime(remaining, showSeconds);
-            }
-        } else {
-            // Atualiza o tempo decorrido
-            var elapsed = now - detalhe.timestamp;
-            tempoCell.textContent = formatTime(elapsed, showSeconds);
-        }
-    }
+                        // Função para atualizar o tempo na célula
+                        function updateTimeCell(showSeconds = false) {
+                            const now = Date.now();
+                            const elapsed = now - detalhe.timestamp; // Tempo decorrido em milissegundos
 
-    // Inicializa a contagem
-    if (detalhe.isFuture) {
-        // Inicia a contagem regressiva a cada segundo
-        var countdownInterval = setInterval(() => updateTimeCell(false), 1000);
-        intervalMap.set(index, countdownInterval);
-    } else {
-        // Inicia a contagem do tempo decorrido a cada segundo
-        var elapsedInterval = setInterval(() => {
-            var elapsed = Date.now() - detalhe.timestamp;
-            tempoCell.textContent = formatTime(elapsed, false);
-        }, 1000);
-        intervalMap.set(index, elapsedInterval);
-    }
+                            // Define tempos limites
+                            const maxTime = 30 * 60 * 1000; // 30 minutos em milissegundos
+                            const midTime = 15 * 60 * 1000; // 15 minutos em milissegundos
 
+                            if (elapsed > maxTime) {
+                                newRow.classList.add("oscillation");
+                                newRow.style.background = ""; // Remove estilos inline conflitantes
+                            } else {
+                                newRow.classList.remove("oscillation");
 
+                                // Gradiente dinâmico para preenchimento da barra
+                                let backgroundGradient;
+                                if (elapsed <= midTime) {
+                                    const percentage = (elapsed / midTime) * 100; // Progresso da barra
+                                    backgroundGradient = `linear-gradient(to left, rgb(0, 255, 0) ${100 - percentage}%, rgb(255, 255, 0) ${100 - percentage}%)`;
+                                } else {
+                                    const percentage = ((elapsed - midTime) / (maxTime - midTime)) * 100; // Progresso da barra
+                                    backgroundGradient = `linear-gradient(to left, rgb(255, 255, 0) ${100 - percentage}%, rgb(255, 0, 0) ${100 - percentage}%)`;
+                                }
 
-    // Exibição inicial
-    updateTimeCell(false);
+                                // Atualiza o fundo da linha inteira
+                                newRow.style.background = backgroundGradient;
+                            }
 
-// Adiciona eventos à linha inteira
-newRow.addEventListener("mouseover", function () {
-    clearInterval(intervalMap.get(index)); // Pausa a atualização padrão
-    updateTimeCell(true); // Atualiza imediatamente com segundos
-    hoverInterval = setInterval(() => updateTimeCell(true), 1000); // Continua a atualização em tempo real com segundos
-});
+                            // Atualiza o campo de tempo
+                            if (detalhe.isFuture) {
+                                const remaining = detalhe.timestamp - now;
+                                if (remaining <= 0) {
+                                    detalhe.isFuture = false;
+                                    detalhe.timestamp = now;
+                                }
+                                tempoCell.textContent = formatTime(remaining, showSeconds);
+                            } else {
+                                tempoCell.textContent = formatTime(elapsed, showSeconds);
+                            }
+                        }
 
-newRow.addEventListener("mouseout", function () {
-    clearInterval(hoverInterval); // Para a atualização com segundos
-    updateTimeCell(false); // Atualiza novamente no formato padrão imediatamente
-    if (detalhe.isFuture) {
-        // Reinicia a contagem regressiva
-        var countdownInterval = setInterval(() => updateTimeCell(false), 1000);
-        intervalMap.set(index, countdownInterval);
-    } else {
-        // Reinicia a contagem do tempo decorrido
-        var elapsedInterval = setInterval(function () {
-            var elapsed = Date.now() - detalhe.timestamp;
-            tempoCell.textContent = formatTime(elapsed, false);
-        }, 1000);
-        intervalMap.set(index, elapsedInterval);
-    }
+                        // Inicializa a contagem
+                        if (detalhe.isFuture) {
+                            // Inicia a contagem regressiva a cada segundo
+                            var countdownInterval = setInterval(() => updateTimeCell(false), 1000);
+                            intervalMap.set(index, countdownInterval);
+                        } else {
+                            // Inicia a contagem do tempo decorrido a cada segundo
+                            var elapsedInterval = setInterval(() => updateTimeCell(false), 1000);
+                            intervalMap.set(index, elapsedInterval);
+                        }
+
+                        // Exibição inicial
+                        updateTimeCell(false);
+
+                        // Eventos de hover para exibir e ocultar os segundos
+                        newRow.addEventListener("mouseover", function () {
+                            // Pausa o intervalo padrão, se existir
+                            if (intervalMap.has(index)) {
+                                clearInterval(intervalMap.get(index));
+                                intervalMap.delete(index); // Remove a referência do mapa para evitar conflitos
+                            }
+
+                            // Atualiza imediatamente com segundos e inicia um intervalo de hover
+                            updateTimeCell(true); // Atualiza para exibir HH:MM:SS
+                            if (!tempoCell._hoverInterval) {
+                                tempoCell._hoverInterval = setInterval(() => {
+                                    const elapsedHover = Date.now() - detalhe.timestamp;
+                                    tempoCell.textContent = formatTime(elapsedHover, true); // Atualiza com HH:MM:SS
+                                }, 1000);
+                            }
+                        });
+
+                        newRow.addEventListener("mouseout", function () {
+                            // Para a contagem dos segundos durante o hover
+                            if (tempoCell._hoverInterval) {
+                                clearInterval(tempoCell._hoverInterval);
+                                delete tempoCell._hoverInterval; // Remove a referência ao intervalo
+                            }
+
+                            // Verifica se o item é futuro ou passado e retoma a contagem normal
+                            if (detalhe.isFuture) {
+                                if (!intervalMap.has(index)) {
+                                    // Reinicia a contagem regressiva apenas se não estiver já ativa
+                                    var countdownInterval = setInterval(() => updateTimeCell(false), 1000);
+                                    intervalMap.set(index, countdownInterval);
+                                }
+                            } else {
+                                if (!intervalMap.has(index)) {
+                                    // Reinicia a contagem do tempo decorrido apenas se não estiver já ativa
+                                    var elapsedInterval = setInterval(() => updateTimeCell(false), 1000);
+                                    intervalMap.set(index, elapsedInterval);
+                                }
+                            }
+
+                            // Volta para o formato HH:MM
+                            const elapsed = Date.now() - detalhe.timestamp;
+                            tempoCell.textContent = formatTime(elapsed, false);
                         });
                     }
                 });
@@ -416,6 +541,8 @@ newRow.addEventListener("mouseout", function () {
         }
 
         atualizarTabelaDetalhes();
+
+        // Restante do código específico para detalhes.html (recebimento, exclusão, reporte)
 
         // Função para abrir a janela flutuante de recebimento
         function abrirJanelaRecebimento(index) {
@@ -509,7 +636,7 @@ newRow.addEventListener("mouseout", function () {
 
                 // Também remove o item correspondente de 'solicitados'
                 var solicitados = JSON.parse(localStorage.getItem("solicitados")) || [];
-                var solicitadosIndex = solicitados.findIndex(function(itemSolicitado) {
+                var solicitadosIndex = solicitados.findIndex(function (itemSolicitado) {
                     return itemSolicitado.local === detalhe.local &&
                         itemSolicitado.item === detalhe.item &&
                         itemSolicitado.destino === detalhe.destino;
@@ -544,7 +671,7 @@ newRow.addEventListener("mouseout", function () {
             if (recebidosTable) {
                 recebidosTable.innerHTML = ""; // Limpa a tabela antes de recarregar
 
-                recebidos.forEach(function(item, index) {
+                recebidos.forEach(function (item, index) {
                     var newRow = document.createElement("tr");
                     newRow.innerHTML = `
                         <td class="checkbox-column hidden"><input type="checkbox" class="delete-checkbox"></td>
@@ -564,16 +691,160 @@ newRow.addEventListener("mouseout", function () {
 
         atualizarTabelaRecebidos();
 
+        // Função para excluir itens da tabela de materiais solicitados
+        var excluirItensButton = document.getElementById("excluirItensButton");
+
+        if (excluirItensButton) {
+            excluirItensButton.addEventListener("click", function () {
+                var detalhesTable = document.getElementById("detalhesTable");
+                var detalhesTableBody = detalhesTable ? detalhesTable.querySelector("tbody") : null;
+                var selectAllCheckbox = document.getElementById("selectAllCheckbox");
+
+                if (!detalhesTableBody) {
+                    alert("Tabela de materiais solicitados não encontrada.");
+                    return;
+                }
+
+                // Verifica se há itens na tabela
+                if (detalhesTableBody.rows.length === 0) {
+                    alert("A lista de materiais solicitados está vazia! Adicione itens para poder realizar a exclusão.");
+                    excluirItensButton.textContent = "Excluir Itens";
+                    return;
+                }
+
+                // Seleciona todas as colunas de checkbox
+                var checkboxColumns = detalhesTable.querySelectorAll(".checkbox-column");
+                var checkboxes = detalhesTableBody.querySelectorAll(".delete-checkbox");
+
+                if (!checkboxColumns.length) {
+                    alert("A coluna 'SELECIONE' não foi configurada corretamente.");
+                    return;
+                }
+
+                // Verifica se a coluna está oculta
+                var isHidden = checkboxColumns[0].classList.contains("hidden");
+
+                if (isHidden) {
+                    // Exibir a coluna "SELECIONE"
+                    checkboxColumns.forEach((column) => column.classList.remove("hidden"));
+                    excluirItensButton.textContent = "Confirmar Exclusão";
+
+                    // Adiciona evento para "Selecionar Todos" no cabeçalho
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.addEventListener("change", function () {
+                            // Marca ou desmarca todas as caixas de seleção
+                            var isChecked = this.checked;
+                            checkboxes.forEach((checkbox) => {
+                                checkbox.checked = isChecked;
+                            });
+                        });
+                    }
+                } else {
+                    // Processar exclusão
+                    var selectedCheckboxes = Array.from(checkboxes).filter((checkbox) => checkbox.checked);
+
+                    if (selectedCheckboxes.length === 0) {
+                        alert("Selecione os itens que deseja excluir.");
+                        return;
+                    }
+
+                    if (confirm("Tem certeza que deseja excluir os itens selecionados?")) {
+                        var detalhes = JSON.parse(localStorage.getItem("detalhes")) || [];
+                        var solicitados = JSON.parse(localStorage.getItem("solicitados")) || [];
+
+                        selectedCheckboxes.forEach((checkbox) => {
+                            var row = checkbox.closest("tr");
+                            var rowIndex = Array.from(detalhesTableBody.rows).indexOf(row);
+
+                            // Remove do array de detalhes
+                            var detalheExcluido = detalhes.splice(rowIndex, 1)[0];
+
+                            // Remove o item correspondente da lista de solicitados em index
+                            solicitados = solicitados.filter((itemSolicitado) => {
+                                return !(
+                                    itemSolicitado.local === detalheExcluido.local &&
+                                    itemSolicitado.item === detalheExcluido.item &&
+                                    itemSolicitado.destino === detalheExcluido.destino
+                                );
+                            });
+
+                            // Remove a linha da tabela
+                            row.remove();
+                        });
+
+                        // Atualiza o localStorage
+                        localStorage.setItem("detalhes", JSON.stringify(detalhes));
+                        localStorage.setItem("solicitados", JSON.stringify(solicitados));
+
+                        alert("Itens excluídos com sucesso!");
+
+                        // Ocultar novamente a coluna "SELECIONE"
+                        checkboxColumns.forEach((column) => column.classList.add("hidden"));
+                        excluirItensButton.textContent = "Excluir Itens";
+
+                        // Desmarcar a caixa "Selecionar Todos"
+                        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+
+                        // Atualizar a tabela de materiais solicitados na página index.html (se estiver carregada)
+                        if (window.location.pathname.includes("index.html")) {
+                            atualizarTabelaSolicitados();
+                        }
+                    }
+                }
+            });
+        }
+
         // Função para excluir itens da tabela de materiais recebidos
         var excluirRecebidosButton = document.getElementById("excluirRecebidosButton");
 
         if (excluirRecebidosButton) {
             excluirRecebidosButton.addEventListener("click", function () {
-                var checkboxes = document.querySelectorAll("#recebidosTable .delete-checkbox");
-                var checkboxesVisible = checkboxes.length > 0 && checkboxes[0].style.display === "inline-block";
+                var recebidosTable = document.getElementById("recebidosTable");
+                var recebidosTableBody = recebidosTable ? recebidosTable.querySelector("tbody") : null;
+                var selectAllRecebidosCheckbox = document.getElementById("selectAllRecebidosCheckbox");
 
-                if (checkboxesVisible) {
-                    var selectedCheckboxes = document.querySelectorAll("#recebidosTable .delete-checkbox:checked");
+                if (!recebidosTableBody) {
+                    alert("Tabela de materiais recebidos não encontrada.");
+                    return;
+                }
+
+                // Verifica se há itens na tabela
+                if (recebidosTableBody.rows.length === 0) {
+                    alert("A lista de materiais recebidos está vazia! Adicione itens para poder realizar a exclusão.");
+                    excluirRecebidosButton.textContent = "Excluir Itens";
+                    return;
+                }
+
+                // Seleciona todas as colunas de checkbox
+                var checkboxColumns = recebidosTable.querySelectorAll(".checkbox-column");
+                var checkboxes = recebidosTableBody.querySelectorAll(".delete-checkbox");
+
+                if (!checkboxColumns.length) {
+                    alert("A coluna 'SELECIONE' não foi configurada corretamente.");
+                    return;
+                }
+
+                // Verifica se a coluna está oculta
+                var isHidden = checkboxColumns[0].classList.contains("hidden");
+
+                if (isHidden) {
+                    // Exibir a coluna "SELECIONE"
+                    checkboxColumns.forEach((column) => column.classList.remove("hidden"));
+                    excluirRecebidosButton.textContent = "Confirmar Exclusão";
+
+                    // Adiciona evento para "Selecionar Todos" no cabeçalho
+                    if (selectAllRecebidosCheckbox) {
+                        selectAllRecebidosCheckbox.addEventListener("change", function () {
+                            // Marca ou desmarca todas as caixas de seleção
+                            var isChecked = this.checked;
+                            checkboxes.forEach((checkbox) => {
+                                checkbox.checked = isChecked;
+                            });
+                        });
+                    }
+                } else {
+                    // Processar exclusão
+                    var selectedCheckboxes = Array.from(checkboxes).filter((checkbox) => checkbox.checked);
 
                     if (selectedCheckboxes.length === 0) {
                         alert("Selecione os itens que deseja excluir.");
@@ -581,156 +852,167 @@ newRow.addEventListener("mouseout", function () {
                     }
 
                     if (confirm("Tem certeza que deseja excluir os itens selecionados?")) {
-                        // Para evitar conflitos de índice ao remover múltiplos itens, percorrer de trás para frente
                         var recebidos = JSON.parse(localStorage.getItem("recebidos")) || [];
-                        selectedCheckboxes = Array.from(selectedCheckboxes).sort(function(a, b) {
-                            return Array.from(recebidosTable.rows).indexOf(a.closest("tr")) - 
-                                   Array.from(recebidosTable.rows).indexOf(b.closest("tr"));
-                        }).reverse();
 
-                        selectedCheckboxes.forEach(function(checkbox) {
+                        selectedCheckboxes.forEach((checkbox) => {
                             var row = checkbox.closest("tr");
-                            var rowIndex = Array.from(recebidosTable.rows).indexOf(row);
-                            row.remove();
-                            // Remove do array recebidos
+                            var rowIndex = Array.from(recebidosTableBody.rows).indexOf(row);
+
+                            // Remove do array de itens recebidos
                             recebidos.splice(rowIndex, 1);
+
+                            // Remove a linha da tabela
+                            row.remove();
                         });
 
+                        // Atualiza o localStorage
                         localStorage.setItem("recebidos", JSON.stringify(recebidos));
 
                         alert("Itens excluídos com sucesso!");
-                    }
 
-                    // Esconde os checkboxes após a operação
-                    checkboxes.forEach(function(checkbox) {
-                        checkbox.style.display = "none";
-                    });
-                    excluirRecebidosButton.textContent = "Excluir Itens";
-                } else {
-                    checkboxes.forEach(function(checkbox) {
-                        checkbox.style.display = "inline-block";
-                    });
-                    excluirRecebidosButton.textContent = "Confirmar Exclusão";
+                        // Ocultar novamente a coluna "SELECIONE"
+                        checkboxColumns.forEach((column) => column.classList.add("hidden"));
+                        excluirRecebidosButton.textContent = "Excluir Itens";
+
+                        // Desmarcar a caixa "Selecionar Todos"
+                        if (selectAllRecebidosCheckbox) selectAllRecebidosCheckbox.checked = false;
+                    }
                 }
             });
         }
 
-        // Função de exclusão de itens na tabela de detalhes
-        var excluirItensButton = document.getElementById("excluirItensButton");
-        if (excluirItensButton) {
-            excluirItensButton.addEventListener("click", function () {
-                var checkboxes = document.querySelectorAll("#detalhesTable .delete-checkbox");
-                var checkboxesVisible = checkboxes.length > 0 && checkboxes[0].style.display === "inline-block";
+        // Função para reportar itens atrasados
+        var reportarItensButton = document.getElementById("reportarItensButton");
+        var selectAllCheckbox = document.getElementById("selectAllCheckbox");
 
-                if (checkboxesVisible) {
-                    var selectedCheckboxes = document.querySelectorAll("#detalhesTable .delete-checkbox:checked");
+        if (reportarItensButton) {
+            reportarItensButton.addEventListener("click", function () {
+                var detalhesTable = document.getElementById("detalhesTable");
+                var detalhesTableBody = detalhesTable ? detalhesTable.querySelector("tbody") : null;
+
+                if (!detalhesTableBody) {
+                    alert("Tabela de materiais solicitados não encontrada.");
+                    return;
+                }
+
+                var checkboxColumns = detalhesTable.querySelectorAll(".checkbox-column");
+                var checkboxes = detalhesTableBody.querySelectorAll(".delete-checkbox");
+
+                if (!checkboxColumns.length) {
+                    alert("A coluna 'SELECIONE' não foi configurada corretamente.");
+                    return;
+                }
+
+                var isHidden = checkboxColumns[0].classList.contains("hidden");
+
+                if (isHidden) {
+                    // Exibir as caixas de seleção e resetar marcações
+                    checkboxColumns.forEach((column) => column.classList.remove("hidden"));
+                    checkboxes.forEach((checkbox) => (checkbox.checked = false)); // Desmarca todas as caixas
+                    reportarItensButton.textContent = "Confirmar Reporte";
+
+                    // Vincular a função ao checkbox de selecionar todos
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.addEventListener("change", function () {
+                            checkboxes.forEach((checkbox) => {
+                                var row = checkbox.closest("tr");
+                                var horaCell = row.children[6].textContent; // Coluna "HORA"
+
+                                // Verifica se o item está atrasado (30 minutos ou mais)
+                                if (verificarAtraso(horaCell)) {
+                                    checkbox.checked = this.checked; // Marca apenas itens atrasados
+                                }
+                            });
+                        });
+                    }
+                } else {
+                    // Verifica itens selecionados
+                    var selectedCheckboxes = Array.from(checkboxes).filter((checkbox) => checkbox.checked);
 
                     if (selectedCheckboxes.length === 0) {
-                        alert("Selecione os itens que deseja excluir.");
+                        alert("Selecione os itens que deseja reportar.");
                         return;
                     }
 
-                    if (confirm("Tem certeza que deseja excluir os itens selecionados?")) {
-                        // Para evitar conflitos de índice ao remover múltiplos itens, percorrer de trás para frente
-                        var detalhesClone = [...detalhes];
-                        selectedCheckboxes = Array.from(selectedCheckboxes).sort(function(a, b) {
-                            return Array.from(detalhesTable.rows).indexOf(a.closest("tr")) - 
-                                   Array.from(detalhesTable.rows).indexOf(b.closest("tr"));
-                        }).reverse();
+                    // Verificar se todos os itens selecionados estão atrasados
+                    var detalhesReportados = [];
+                    var erro = false;
 
-                        selectedCheckboxes.forEach(function(checkbox) {
-                            var row = checkbox.closest("tr");
-                            var rowIndex = Array.from(detalhesTable.rows).indexOf(row);
-                            var detalhe = detalhesClone[rowIndex];
+                    selectedCheckboxes.forEach((checkbox) => {
+                        var row = checkbox.closest("tr");
+                        var horaCell = row.children[6].textContent; // Coluna "HORA"
+                        var local = row.children[1].textContent; // Local do material
+                        var item = row.children[2].textContent;  // Código do item
+                        var destino = row.children[4].textContent; // Destino
+                        var index = Array.from(detalhesTableBody.rows).indexOf(row);
+                        var detalhe = detalhes[index];
 
-                            // Limpa os intervals do cronômetro
-                            if (detalhe.isFuture && intervalMap.has(rowIndex)) {
-                                clearInterval(intervalMap.get(rowIndex));
-                                intervalMap.delete(rowIndex);
-                            }
-                            if (!detalhe.isFuture && intervalMap.has(rowIndex)) {
-                                clearInterval(intervalMap.get(rowIndex));
-                                intervalMap.delete(rowIndex);
-                            }
-
-                            row.remove();
-                            // Remove do array detalhes
-                            detalhes.splice(rowIndex, 1);
-
-                            // Também remove o item correspondente de 'solicitados'
-                            var solicitados = JSON.parse(localStorage.getItem("solicitados")) || [];
-                            var solicitadosIndex = solicitados.findIndex(function(itemSolicitado) {
-                                return itemSolicitado.local === detalhe.local &&
-                                    itemSolicitado.item === detalhe.item &&
-                                    itemSolicitado.destino === detalhe.destino;
+                        if (!verificarAtraso(horaCell)) {
+                            alert(`Não é possível reportar o material (${local} - ${item}) porque ele não ultrapassou o tempo de atraso!`);
+                            erro = true;
+                            checkbox.checked = false; // Desmarca o item não atrasado
+                        } else {
+                            detalhesReportados.push({
+                                local: local,
+                                item: item,
+                                destino: destino,
+                                horario: detalhe.horario,
+                                tempoAtraso: formatTime(Date.now() - detalhe.timestamp)
                             });
+                        }
+                    });
 
-                            if (solicitadosIndex !== -1) {
-                                solicitados.splice(solicitadosIndex, 1);
-                                localStorage.setItem("solicitados", JSON.stringify(solicitados));
-                            }
-                        });
-
-                        localStorage.setItem("detalhes", JSON.stringify(detalhes));
-
-                        alert("Itens excluídos com sucesso!");
+                    if (erro) {
+                        return; // Interrompe o processo se houver erro
                     }
 
-                    // Esconde os checkboxes após a operação
-                    checkboxes.forEach(function(checkbox) {
-                        checkbox.style.display = "none";
-                    });
-                    excluirItensButton.textContent = "Excluir Itens";
-                } else {
-                    checkboxes.forEach(function(checkbox) {
-                        checkbox.style.display = "inline-block";
-                    });
-                    excluirItensButton.textContent = "Confirmar Exclusão";
+                    // Formatar a mensagem de confirmação
+                    var detalhesConfirmacao = detalhesReportados.map(function(detalhe) {
+                        return `${detalhe.local} - ${detalhe.item} - (${detalhe.destino})`;
+                    }).join("\n");
+
+                    // Confirmar com a lista dos itens reportados
+                    var confirmacao = confirm(
+                        `Tem certeza que deseja reportar os seguintes itens?\n\n${detalhesConfirmacao}`
+                    );
+
+                    if (confirmacao) {
+                        // Construir a lista de itens atrasados no formato desejado
+                        var detalhesItens = detalhesReportados.map(function(detalhe) {
+                            return `${detalhe.local} - ${detalhe.item} - (${detalhe.destino}) - (Solicitação: ${detalhe.horario}) - (Tempo de atraso decorrido: ${detalhe.tempoAtraso})`;
+                        }).join("\n");
+
+                        // Enviar o e-mail usando o EmailJS
+                        var templateParams = {
+                            detalhes_itens: detalhesItens,
+                            to_email: 'lucasprestes8486@gmail.com, lucasprestes3540@gmail.com' // Destinatários
+                        };
+
+                        emailjs.send('service_i0s3unp', 'template_28grsg5', templateParams)
+                            .then(function(response) {
+                                alert('Reporte realizado com sucesso e e-mail enviado!');
+                            }, function(error) {
+                                alert('Ocorreu um erro ao enviar o e-mail: ' + JSON.stringify(error));
+                            });
+
+                        checkboxColumns.forEach((column) => column.classList.add("hidden"));
+                        reportarItensButton.textContent = "Reportar";
+                    }
                 }
             });
         }
+
+        // Função para verificar se um item está atrasado
+        function verificarAtraso(horaSolicitada) {
+            var agora = new Date();
+            var [horas, minutos] = horaSolicitada.split(":").map(Number);
+
+            var horarioSolicitado = new Date();
+            horarioSolicitado.setHours(horas, minutos, 0, 0);
+
+            var diferencaMinutos = Math.floor((agora - horarioSolicitado) / 60000);
+
+            return diferencaMinutos >= 30; // Retorna true se estiver atrasado (30 minutos ou mais)
+        }
     }
-
-    function gerarCodigoRegistro() {
-    return Math.floor(1000 + Math.random() * 9000).toString(); // Código de 4 dígitos
-}
-document.addEventListener("DOMContentLoaded", function () {
-    const iniciarTurnoButton = document.getElementById("iniciarTurnoButton");
-    const abrirSolicitacaoButton = document.getElementById("abrirSolicitacaoButton");
-    const reservarButton = document.getElementById("reservarButton");
-    const codigoRegistroContainer = document.getElementById("codigoRegistro");
-    const registroCodigo = document.getElementById("registroCodigo");
-
-    iniciarTurnoButton.addEventListener("click", function () {
-        // Gera o código de registro
-        const codigo = gerarCodigoRegistro();
-
-        // Armazena o código no localStorage
-        localStorage.setItem("codigoRegistro", codigo);
-
-        // Exibe o código de registro na tela
-        registroCodigo.textContent = codigo;
-        codigoRegistroContainer.style.display = "block";
-
-        // Exibe os botões de solicitação e reserva
-        abrirSolicitacaoButton.style.display = "inline-block";
-        reservarButton.style.display = "inline-block";
-
-        // Oculta o botão de iniciar turno
-        iniciarTurnoButton.style.display = "none";
-
-        alert(`Turno iniciado! Código de registro: ${codigo}`);
-    });
-
-    // Verifica se já existe um código de registro
-    const codigoExistente = localStorage.getItem("codigoRegistro");
-    if (codigoExistente) {
-        registroCodigo.textContent = codigoExistente;
-        codigoRegistroContainer.style.display = "block";
-        abrirSolicitacaoButton.style.display = "inline-block";
-        reservarButton.style.display = "inline-block";
-        iniciarTurnoButton.style.display = "none";
-    }
-});
-
 });
