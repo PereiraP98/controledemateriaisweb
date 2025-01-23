@@ -22,3 +22,46 @@ Atenciosamente,
 [Seu Nome]
 [Seu Departamento / Cargo]
 [Empresa]
+
+
+
+Descrição do Projeto:
+
+O sistema Controle de Materiais tem como objetivo centralizar e otimizar o fluxo de solicitações, monitoramento e recebimento de materiais em nossos galpões. Ele oferece as seguintes funcionalidades principais:
+
+1. Solicitação de Materiais
+
+Permite o registro de pedidos, inicialmente focados em caixa amarela (e, futuramente, em Artok’s e outros itens diversos), garantindo que todos os pedidos sejam rastreados desde o momento em que são criados.
+
+
+
+2. Monitoramento em Tempo Real
+
+Exibe os materiais solicitados e acompanha o status de cada entrega, com indicadores visuais de atraso.
+
+Inclui funções de reporte, permitindo que os usuários notifiquem a gestão sobre quaisquer problemas ou atrasos inesperados.
+
+
+
+3. Registro de Recebimento
+
+Possibilita que a equipe confirme a chegada e finalize cada solicitação, atualizando o status no sistema e criando um histórico confiável.
+
+
+
+4. Relatórios Detalhados
+
+Gera relatórios de todas as solicitações efetuadas e recebidas ao final de cada turno, permitindo uma análise posterior do fluxo de trabalho e do desempenho das equipes de reposição.
+
+Apresenta dados de tempo de entrega por galpão, auxiliando na identificação de gargalos e na tomada de decisões de melhoria de processo.
+
+
+
+5. Análise em Tempo Real
+
+Permite que a gestão visualize, a qualquer momento, quantas solicitações estão em aberto, qual o estágio de cada uma e onde há possíveis atrasos.
+
+
+
+
+Com esses recursos, a ferramenta visa aumentar a eficiência operacional, reduzir atrasos e prover visibilidade total do processo de reposição, do pedido inicial até a entrega final. Desse modo, a equipe de gestão poderá tomar decisões baseadas em dados e melhorar continuamente o fluxo de materiais na empresa.
