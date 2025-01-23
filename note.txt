@@ -1,0 +1,24 @@
+Prezada Equipe de TI,
+
+Espero que estejam bem.
+Gostaria de solicitar a liberação do domínio controledemateriais.com nos filtros de acesso da nossa rede corporativa. Trata-se de um site que utilizamos em nosso projeto de [controle e gerenciamento de materiais] (descreva aqui de forma breve a finalidade do sistema), e o acesso é fundamental para que a equipe possa:
+
+1. Acompanhar solicitações de materiais e estoque em tempo real;
+
+
+2. Gerar relatórios de entrada e saída de produtos;
+
+
+3. Manter o fluxo de trabalho alinhado entre diferentes setores (Vendas, Reposição, Monitoramento etc.).
+
+
+
+No momento, o acesso encontra-se bloqueado pelo firewall, classificado como “Newly Registered Domain” (ou outra categoria conforme a mensagem). Porém, trata-se de um site legítimo, hospedado na plataforma Hostinger, e não apresenta riscos conhecidos segundo nossa análise. É essencial para o bom andamento das atividades de [nome do departamento/projeto/equipe].
+
+Agradeço desde já pela atenção e aguardo um retorno sobre a possibilidade de incluir o domínio em whitelist ou conceder a devida permissão de acesso.
+Fico à disposição para esclarecer qualquer dúvida ou fornecer informações adicionais que julguem necessárias.
+
+Atenciosamente,
+[Seu Nome]
+[Seu Departamento / Cargo]
+[Empresa]
