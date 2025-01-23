@@ -1,29 +1,7 @@
 Prezada Equipe de TI,
 
 Espero que estejam bem.
-Gostaria de solicitar a liberação do domínio controledemateriais.com nos filtros de acesso da nossa rede corporativa. Trata-se de um site que utilizamos em nosso projeto de [controle e gerenciamento de materiais] (descreva aqui de forma breve a finalidade do sistema), e o acesso é fundamental para que a equipe possa:
-
-1. Acompanhar solicitações de materiais e estoque em tempo real;
-
-
-2. Gerar relatórios de entrada e saída de produtos;
-
-
-3. Manter o fluxo de trabalho alinhado entre diferentes setores (Vendas, Reposição, Monitoramento etc.).
-
-
-
-No momento, o acesso encontra-se bloqueado pelo firewall, classificado como “Newly Registered Domain” (ou outra categoria conforme a mensagem). Porém, trata-se de um site legítimo, hospedado na plataforma Hostinger, e não apresenta riscos conhecidos segundo nossa análise. É essencial para o bom andamento das atividades de [nome do departamento/projeto/equipe].
-
-Agradeço desde já pela atenção e aguardo um retorno sobre a possibilidade de incluir o domínio em whitelist ou conceder a devida permissão de acesso.
-Fico à disposição para esclarecer qualquer dúvida ou fornecer informações adicionais que julguem necessárias.
-
-Atenciosamente,
-[Seu Nome]
-[Seu Departamento / Cargo]
-[Empresa]
-
-
+Gostaria de solicitar a liberação do domínio controledemateriais.com nos filtros de acesso da nossa rede corporativa. Trata-se de um site que utilizamos em nosso projeto de controle e gerenciamento de materiais.
 
 Descrição do Projeto:
 
@@ -34,7 +12,6 @@ O sistema Controle de Materiais tem como objetivo centralizar e otimizar o fluxo
 Permite o registro de pedidos, inicialmente focados em caixa amarela (e, futuramente, em Artok’s e outros itens diversos), garantindo que todos os pedidos sejam rastreados desde o momento em que são criados.
 
 
-
 2. Monitoramento em Tempo Real
 
 Exibe os materiais solicitados e acompanha o status de cada entrega, com indicadores visuais de atraso.
@@ -42,11 +19,9 @@ Exibe os materiais solicitados e acompanha o status de cada entrega, com indicad
 Inclui funções de reporte, permitindo que os usuários notifiquem a gestão sobre quaisquer problemas ou atrasos inesperados.
 
 
-
 3. Registro de Recebimento
 
 Possibilita que a equipe confirme a chegada e finalize cada solicitação, atualizando o status no sistema e criando um histórico confiável.
-
 
 
 4. Relatórios Detalhados
@@ -56,12 +31,22 @@ Gera relatórios de todas as solicitações efetuadas e recebidas ao final de ca
 Apresenta dados de tempo de entrega por galpão, auxiliando na identificação de gargalos e na tomada de decisões de melhoria de processo.
 
 
-
 5. Análise em Tempo Real
 
 Permite que a gestão visualize, a qualquer momento, quantas solicitações estão em aberto, qual o estágio de cada uma e onde há possíveis atrasos.
 
 
-
-
 Com esses recursos, a ferramenta visa aumentar a eficiência operacional, reduzir atrasos e prover visibilidade total do processo de reposição, do pedido inicial até a entrega final. Desse modo, a equipe de gestão poderá tomar decisões baseadas em dados e melhorar continuamente o fluxo de materiais na empresa.
+
+No momento, o acesso encontra-se bloqueado pelo firewall, classificado como “Newly Registered Domain”. Porém, trata-se de um site legítimo, hospedado na plataforma Hostinger, e não apresenta riscos conhecidos segundo nossa análise. É essencial para o bom andamento das atividades de reposição.
+
+Este é um grande passo para o meu projeto, atualmente ele está em contrução, mas todo o projeto pronto está hospedado pela plataforma github.com (https://pereirap98.github.io/controle-materiais-web/) e está em fase de atualização para o site www.controledemateriais.com.
+
+Agradeço desde já pela atenção e aguardo um retorno sobre a possibilidade de incluir o domínio em whitelist ou conceder a devida permissão de acesso.
+Fico à disposição para esclarecer qualquer dúvida ou fornecer informações adicionais que julguem necessárias. 
+
+
+Atenciosamente,
+Lucas Pereira Prestes
+Reposição CDP
+Amanco unidade Glória
